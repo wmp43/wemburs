@@ -11,7 +11,7 @@ pub use crate::descriptive_statistics::errors::*;
 pub use crate::descriptive_statistics::dataframe::*;
 pub use crate::descriptive_statistics::visualizations::*;
 
-
+// Measures of Centrality
 pub fn mean(data: &[f64]) -> Result<f64, StatsError> {
     let count = data.len();
     if count == 0 {
@@ -29,11 +29,28 @@ pub fn mean(data: &[f64]) -> Result<f64, StatsError> {
     Ok(sum / count as f64)
 }
 
-pub fn sorted_mean(data: &[f64], trim_n: usize) -> Result<f64, StatsError> {
+
+pub fn trimmed_mean(data: &[f64], trim_perc: f64) -> Result<f64, StatsError> {
+    // Could offer trimming with IQR Functionality or other outlier functionality
+    // currently should implelement with 10% trim on each end
+    // 1. Make a copy, 2. sort, 3. Find num trim 4. return trimmed
+    // Pitfalls: untrimmable length, Invalid values
+
+    // checking if inputs are valid, trim_perc and array len
     let count = data.len();
 
+    if trim_perc < 0.0 || trim_perc > 1.0 {
+        return Err(StatsError::InvalidInputValue);
+    }
+
+    if count == 0 {
+        return Err(StatsError::EmptyDataSet);
+    }
+
+    let n_to_trim = ((count as f64) * trim_perc) as usize;
+
     // Check that there's enough data to trim
-    if count < 2 * trim_n {
+    if count < 2 * n_to_trim {
         return Err(StatsError::InvalidInputValue);
     }
 
@@ -47,7 +64,7 @@ pub fn sorted_mean(data: &[f64], trim_n: usize) -> Result<f64, StatsError> {
     sorted_data.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
 
     // Trim the values
-    let trimmed_data = &sorted_data[trim_n..count - trim_n];
+    let trimmed_data = &sorted_data[n_to_trim..count - n_to_trim];
 
     // Calculate the mean of the trimmed data
     let sum: f64 = trimmed_data.iter().sum();
@@ -56,6 +73,42 @@ pub fn sorted_mean(data: &[f64], trim_n: usize) -> Result<f64, StatsError> {
     Ok(sum / trimmed_count as f64)
 }
 
+
+pub fn weighted_mean(data: &[f64], weights: &[f64]) -> Result<f64, StatsError> {
+    // 1. get cum sum of numerator: w_i * d_i
+    // 2. get cum sum of denom: w_i
+
+    //pitfalls:
+    // data or weight weight len 0,
+    // data and weight non matching len,
+    // data or weight value inf or nan
+
+    let data_count = data.len();
+    let weight_count = weights.len();
+
+    // invalid or mismatching len
+    if weight_count != data_count || weight_count == 0 {
+        // removing data_count == 0 as a boolean check made me feel smart lol
+        return Err(StatsError::InvalidInputValue)
+    }
+
+    // invalid input weight or data
+    if data.iter().any(|&val| val.is_nan() || val.is_infinite()) ||
+        weights.iter().any(|&val| val.is_nan() || val.is_infinite()) {
+        return Err(StatsError::InvalidInputValue);
+    }
+
+    let mut numerator_cum_sum: f64 = data.iter()
+        .zip(weights.iter()).map(|(&d, &w)| w * d).sum();
+
+    let denominator_cum_sum: f64 = weights.iter().sum();
+
+    if denominator_cum_sum == 0.0 {
+        return Err(StatsError::InvalidInputValue);
+    }
+
+    Ok(numerator_cum_sum / denominator_cum_sum)
+}
 
 
 pub fn median(data: &[f64]) -> Result<f64, StatsError> {
@@ -90,6 +143,14 @@ pub fn median(data: &[f64]) -> Result<f64, StatsError> {
         Ok(mid_val)
     }
 }
+
+
+// Measures of spread
+
+// Variance
+// Std Dev
+// Mean Absolute difference
+// Standard Deviation
 
 
 

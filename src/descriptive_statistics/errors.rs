@@ -1,6 +1,6 @@
 // Errors for Statistics files: *_statics.rs
 
-use std::fmt::{Debug, Formatter};
+use std::fmt::{Debug, Formatter, Result};
 
 #[derive(PartialEq)]
 pub enum StatsError{
@@ -9,7 +9,7 @@ pub enum StatsError{
 }
 
 impl std::fmt::Display for StatsError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter) -> Result {
         write!(
             f,
             "{}",
@@ -23,8 +23,8 @@ impl std::fmt::Display for StatsError {
 }
 
 
-impl std::fmt::Debug for StatsError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Debug for StatsError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self {
             StatsError::EmptyDataSet => write!(f, "StatsError::EmptyDataSet"),
             StatsError::InvalidInputValue => write!(f, "StatsError::InvalidInputValue"),

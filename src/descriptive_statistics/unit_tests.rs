@@ -1,9 +1,6 @@
 // Unit Tests
-use crate::descriptive_statistics::mean;
-use crate::descriptive_statistics::median;
-use crate::descriptive_statistics::trimmed_mean;
-use crate::descriptive_statistics::weighted_mean;
 use crate::descriptive_statistics::errors::*;
+use crate::descriptive_statistics::*;
 
 
 
@@ -169,6 +166,41 @@ mod tests {
             let data = [1.0, 2.0, 3.0];
             let weights = [0.0, 0.0, 0.0];
             assert_eq!(weighted_mean(&data, &weights), Err(StatsError::InvalidInputValue));
+        }
+    }
+
+    mod variance_tests {
+        use super::*;
+
+        #[test]
+        fn test_variance_valid_dataset() {
+            let data = [1.0, 2.0, 3.0, 4.0, 5.0];
+            let expected_variance = 2.5; // The sample variance of this dataset
+            assert_eq!(variance(&data), Ok(expected_variance));
+        }
+
+        #[test]
+        fn test_variance_empty_dataset() {
+            let data: [f64; 0] = [];
+            assert_eq!(variance(&data), Err(StatsError::EmptyDataSet));
+        }
+
+        #[test]
+        fn test_variance_single_element() {
+            let data = [3.0];
+            assert_eq!(variance(&data), Err(StatsError::EmptyDataSet)); // Or another appropriate error for single element datasets
+        }
+
+        #[test]
+        fn test_variance_with_nan() {
+            let data = [1.0, f64::NAN, 3.0];
+            assert_eq!(variance(&data), Err(StatsError::InvalidInputValue));
+        }
+
+        #[test]
+        fn test_variance_with_infinity() {
+            let data = [1.0, f64::INFINITY, 3.0];
+            assert_eq!(variance(&data), Err(StatsError::InvalidInputValue));
         }
     }
 }

@@ -98,7 +98,7 @@ pub fn weighted_mean(data: &[f64], weights: &[f64]) -> Result<f64, StatsError> {
         return Err(StatsError::InvalidInputValue);
     }
 
-    let mut numerator_cum_sum: f64 = data.iter()
+    let numerator_cum_sum: f64 = data.iter()
         .zip(weights.iter()).map(|(&d, &w)| w * d).sum();
 
     let denominator_cum_sum: f64 = weights.iter().sum();
@@ -146,11 +146,49 @@ pub fn median(data: &[f64]) -> Result<f64, StatsError> {
 
 
 // Measures of spread
+pub fn variance(data: &[f64]) -> Result<f64, StatsError> {
+    // (d_i * d_bar)**2 / count - 1
+    // (d_i * d_bar)**2 is a cum sum
 
-// Variance
-// Std Dev
+    let count = data.len();
+    let mean_value = mean(data)?;
+
+    if count < 2 {
+        return Err(StatsError::EmptyDataSet);
+    }
+
+    // Check for invalid values
+    if data.iter().any(|&val| val.is_nan() || val.is_infinite()) {
+        return Err(StatsError::InvalidInputValue);
+    }
+
+    let mean = mean(data)?;
+
+    // Proceed with variance calculation
+    let sum_sq_diff: f64 = data.iter().map(|&value| {
+        let diff = value - mean_value;
+        diff * diff
+    }).sum();
+
+    let variance = sum_sq_diff / (count as f64 - 1.0);
+    Ok(variance)
+}
+
+pub fn median_absolute_deviation(data: &[f64]) -> Result<f64, StatsError> {
+    // some implementation for this ... never heard of this before but seems like it could be useful
+    // L
+}
+
+pub fn trimmed_variance(data: &[f64]) -> Result<f64, StatsError> {
+    // Trimmed Var, analagous to trimmed mean.
+}
+
+
+
+// median absolute deviation
+// IQR -- percentile macro?
+//
 // Mean Absolute difference
-// Standard Deviation
 
 
 

@@ -7,14 +7,16 @@ edition = "2021"
 
 [dependencies]
 pyo3 = { version = "^0.20.0" }
-
 # ndarray for n-dimensional arrays and data manipulation
 ndarray = "^0.15"
-
 # ndarray stats seemingly
 ndarray-stats = "^0.5.1"
-
 polars = { version = "^0.34.2" }
-
 # Optional: Plotters for data visualization (comment out if not using)
 plotters = { version = "^0.3" }
+numpy = { version = "^0.20.0" }
+
+
+[lib]
+name = "wemburs"
+crate-type = ["cdylib"]

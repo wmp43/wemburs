@@ -2,7 +2,7 @@
 
 use std::fmt::{Debug, Formatter, Result};
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum StatsError{
     EmptyDataSet,
     InvalidInputValue,
@@ -21,20 +21,26 @@ impl std::fmt::Display for StatsError {
             }
         )
     }
-
 }
 
 
-impl Debug for StatsError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        match self {
-            StatsError::EmptyDataSet => write!(f, "StatsError::EmptyDataSet"),
-            StatsError::InvalidInputValue => write!(f, "StatsError::InvalidInputValue"),
-            StatsError::InconsistentLength => write!(f, "StatsError::InconsistentLength")
+impl From<StatsError> for PyErr {
+    fn from(err: StatsError) -> PyErr {
+        match err {
+            StatsError::EmptyDataSet => PyValueError::new_err(err.to_string()),
+            StatsError::InvalidInputValue => PyValueError::new_err(err.to_string()),
+            StatsError::InconsistentLength => PyValueError::new_err(err.to_string()),
         }
     }
 }
 
 
-impl std::error::Error for StatsError {}
-
+// impl Debug for StatsError {
+//     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+//         match self {
+//             StatsError::EmptyDataSet => write!(f, "StatsError::EmptyDataSet"),
+//             StatsError::InvalidInputValue => write!(f, "StatsError::InvalidInputValue"),
+//             StatsError::InconsistentLength => write!(f, "StatsError::InconsistentLength")
+//         }
+//     }
+// }

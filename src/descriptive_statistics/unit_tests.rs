@@ -8,7 +8,6 @@ use crate::descriptive_statistics::*;
 mod tests {
     use super::*;
 
-
     mod mean_tests {
         use super::*;
 
@@ -41,10 +40,9 @@ mod tests {
             let data = [1.0, 2.0, f64::INFINITY];
             assert_eq!(mean(&data), Err(StatsError::InvalidInputValue));
         }
-
     }
 
-    mod median_tests{
+    mod median_tests {
         use super::*;
         #[test]
         fn test_median_empty_array() {

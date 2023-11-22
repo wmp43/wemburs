@@ -18,18 +18,22 @@ fn wemburs(py: Python, m: &PyModule) -> PyResult<()> {
     dstats.add_function(wrap_pyfunction!(descriptive_statistics::range, dstats)?)?;
     dstats.add_function(wrap_pyfunction!(descriptive_statistics::range, dstats)?)?;
     dstats.add_function(wrap_pyfunction!(descriptive_statistics::covariance, dstats)?)?;
-
+    dstats.add_function(wrap_pyfunction!(descriptive_statistics::correlation, dstats)?)?;
+    dstats.add_function(wrap_pyfunction!(descriptive_statistics::skewness, dstats)?)?;
+    dstats.add_function(wrap_pyfunction!(descriptive_statistics::kurtosis, dstats)?)?;
+    dstats.add_function(wrap_pyfunction!(descriptive_statistics::summary_statistics, dstats)?)?;
+    m.add_submodule(dstats)?;
+    Ok(());
+}
     // Implement November 22nd
     //
     //
     //
-    //    dstats.add_function(wrap_pyfunction!(descriptive_statistics::correlation, dstats)?)?;
-    //    dstats.add_function(wrap_pyfunction!(descriptive_statistics::skewdness, dstats)?)?;
-    //    dstats.add_function(wrap_pyfunction!(descriptive_statistics::kurtosis, dstats)?)?;
-    m.add_submodule(dstats)?;
+    //
+
     //    Other Descriptive Functions to include
-    //    dstats.add_function(wrap_pyfunction!(descriptive_statistics::summary_statistics, dstats)?)?;
-    //    dstats.add_function(wrap_pyfunction!(descriptive_statistics::median_absolute_deviation, dstats)?)?;
+    //
+
 
     // outlier detection
     //    let od = PyModule::new(py, "outlier_detection")?;
@@ -39,6 +43,6 @@ fn wemburs(py: Python, m: &PyModule) -> PyResult<()> {
     // visualization
     //    let od = PyModule::new(py, "visualization")?;
     //    od.add_function(wrap_pyfunction!(visualization::box_plot, od)?)?;
-    Ok(())
-}
+
+
 

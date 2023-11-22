@@ -1,13 +1,16 @@
 // Errors for Statistics files: *_statics.rs
 
 use std::fmt::{Debug, Formatter, Result};
+use pyo3::PyErr;
+use pyo3::exceptions::PyValueError;
 
 #[derive(Debug, PartialEq)]
 pub enum StatsError{
     EmptyDataSet,
     InvalidInputValue,
     InconsistentLength,
-    MinMaxError
+    MinMaxError,
+    ZeroVariance
 }
 
 impl std::fmt::Display for StatsError {
@@ -19,7 +22,8 @@ impl std::fmt::Display for StatsError {
                 StatsError::EmptyDataSet => "Input data array is empty, cannot perform operation.",
                 StatsError::InvalidInputValue => "Input contains invalid values (e.g., NaN or Infinity).",
                 StatsError::InconsistentLength => "Input data and weight arrays length do not match",
-                StatsError::MinMaxError => "Not able to find min and or maximum value",
+                StatsError::MinMaxError => "Cannot compute min or max: the dataset is empty or contains invalid values.",
+                StatsError::ZeroVariance => "Cannot compute: one or both variables have zero variance."
             }
         )
     }
@@ -33,6 +37,7 @@ impl From<StatsError> for PyErr {
             StatsError::InvalidInputValue => PyValueError::new_err(err.to_string()),
             StatsError::InconsistentLength => PyValueError::new_err(err.to_string()),
             StatsError::MinMaxError => PyValueError::new_err(err.to_string()),
+            StatsError::ZeroVariance => PyValueError::new_err(err.to_string()),
         }
     }
 }

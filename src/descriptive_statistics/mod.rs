@@ -1,16 +1,14 @@
 // In descriptive_statistics/mod.rs
 pub mod errors;
-pub mod dataframe;
-pub mod visualizations;
 
 #[cfg(test)]
 mod unit_tests;
 
 // At the top of your mod.rs or any other file where you need these modules
 pub use crate::descriptive_statistics::errors::*;
-pub use crate::descriptive_statistics::dataframe::*;
-pub use crate::descriptive_statistics::visualizations::*;
-use statrs::statistics::{Mean, Variance};
+
+use statrs::statistics::Data;
+use statrs::statistics::Statistics::*;
 
 
 use pyo3::prelude::*;
@@ -57,7 +55,7 @@ macro_rules! validate_statistical_input {
 
 // Measures of Centrality
 #[pyfunction]
-pub fn mean(data: &PyArray1<f64>) -> PyResult<f64> {
+pub fn mean(data: &PyArray<f64, 1>) -> PyResult<f64> {
     let data_slice = data.as_slice()?; // convert to rust slice
     validate_statistical_input!(basic, &data_slice); // data validation macro
     let count = data_slice.len();
@@ -66,7 +64,7 @@ pub fn mean(data: &PyArray1<f64>) -> PyResult<f64> {
 }
 
 #[pyfunction]
-pub fn trimmed_mean(data: &PyArray1<f64>, trim_percent: f64) -> PyResult<f64> {
+pub fn trimmed_mean(data: &PyArray<f64, 1>, trim_percent: f64) -> PyResult<f64> {
     let data_slice = data.as_slice()?; // conversion to rust slice
     validate_statistical_input!(trimmed, data, trim_percent);
     let n_to_trim = ((data_slice.len() as f64) * trim_percent) as usize;
@@ -79,7 +77,7 @@ pub fn trimmed_mean(data: &PyArray1<f64>, trim_percent: f64) -> PyResult<f64> {
 }
 
 #[pyfunction]
-pub fn weighted_mean(data: &PyArray1<f64>, weights: &PyArray<f64>) -> PyResult<f64> {
+pub fn weighted_mean(data: &PyArray<f64, 1>, weights: &PyArray<f64, 1>) -> PyResult<f64> {
     let data_slice = data.as_slice()?;
     let weights_slice = weights.as_slice()?;
     validate_statistical_input!(weighted, data_slice, weights_slice);
@@ -93,7 +91,7 @@ pub fn weighted_mean(data: &PyArray1<f64>, weights: &PyArray<f64>) -> PyResult<f
 }
 
 #[pyfunction]
-pub fn median(data: &PyArray1<f64>) -> PyResult<f64> {
+pub fn median(data: &PyArray<f64, 1>) -> PyResult<f64> {
     let data_slice = data.as_slice()?;
     validate_statistical_input!(basic, data_slice);
     let count:i32 = &data_slice.len();
@@ -114,7 +112,7 @@ pub fn median(data: &PyArray1<f64>) -> PyResult<f64> {
 
 // Measures of spread
 #[pyfunction]
-pub fn variance(data: &PyArray1<f64>) -> PyResult<f64> {
+pub fn variance(data: &PyArray<f64, 1>) -> PyResult<f64> {
     let data_slice = data.as_slice()?;
     validate_statistical_input!(basic, data_slice);
     let mean_value = mean(data_slice)?;
@@ -131,7 +129,7 @@ pub fn variance(data: &PyArray1<f64>) -> PyResult<f64> {
 
 
 #[pyfunction]
-pub fn trimmed_variance(data: &PyArray1<f64>, trim_percent: f64) -> PyResult<f64> {
+pub fn trimmed_variance(data: &PyArray<f64, 1>, trim_percent: f64) -> PyResult<f64> {
     // Trimmed Var, analagous to trimmed mean.
     let data_slice = data.as_slice()?;
     validate_statistical_input!(trimmed, data_slice, trim_percent);
@@ -141,7 +139,7 @@ pub fn trimmed_variance(data: &PyArray1<f64>, trim_percent: f64) -> PyResult<f64
     // Check that there's enough data to trim
     if count < 2 * n_to_trim { return Err(StatsError::InvalidInputValue); }
     let mut sorted_data = data_slice.to_vec();
-    sorted_data.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    sorted_data.sort_unstable(); // already confirmed there are no nan or inf values, I think this is fine
 
     let trimmed_data = &sorted_data[n_to_trim..count - n_to_trim];
 
@@ -160,8 +158,67 @@ pub fn trimmed_variance(data: &PyArray1<f64>, trim_percent: f64) -> PyResult<f64
 
 // IQR -- percentile macro?
 //
-// Mean Absolute difference
+#[pyfunction]
+pub fn median_absolute_deviation(data: &PyArray<f64, 1>) -> PyResult<f64> {
+    // Median absolute deviation
+    // MAD = abs(x_i - median(x))
+    let data_slice = data.as_slice()?;
+    validate_statistical_input!(basic, &data_slice);
+    let median = data_slice.median();
+    let absolute_deviation: Vec<f64> = data_slice.iter()
+        .map(|&x| (x - median).abs())
+        .collect();
+    let mad: f64 = absolute_deviation.median();
+    Ok(mad);
+}
 
+#[pyfunction]
+pub fn iqr(data: &PyArray<f64, 1>) -> PyResult<f64> {
+    let data_slice = data.as_slice()?;
+    validate_statistical_input!(basic, &data_slice);
+    // need way to find 75th and 25th percentile
+    if data_slice.len() < 2 { return Err(StatsError::InvalidInputValue); }
+    data_slice.sort_unstable();
+    let data_obj = Data::new(data);
+    // Edit this to avoid unwrap()
+    let lower_quartile = data_obj.percentile(25.0).unwrap();
+    let upper_quartile = data_obj.percentile(75.0).unwrap();
+    Ok(upper_quartile - lower_quartile)
+}
+
+#[pyfunction]
+pub fn range(data: &PyArray<f64, 1>) -> PyResult<f64> {
+    let data_slice = data.as_slice()?;
+    validate_statistical_input!(basic, &data_slice);
+    let max_val: f64 = data_slice.iter()
+        .min()
+        .ok_or_else(||Err(StatsError::MinMaxError))?;
+
+    let min_val: f64 = data_slice.iter()
+        .max()
+        .ok_or_else(||Err(StatsError::MinMaxError))?;
+
+    Ok((max_val - min_val).abs())
+}
+
+pub fn covariance(x: &PyArray<f64, 1>, y: &PyArray<f64, 1>) -> PyResult<f64> {
+    // Covariance of two PyArrays
+    // Sum((x_i - x_bar) * (y_i - y_bar)) / n - 1
+    let x_data = x.as_slice()?;
+    let y_data = y.as_slice()?;
+    validate_statistical_input!(weighted, &x_data, &y_data);
+
+    let n : f64 = x_data.len();
+    if n < 2.0 { return Err(StatsError::InvalidInputValue); }
+    let x_mean: f64 = x_data.mean()?;
+    let y_mean: f64 = y_data.mean()?;
+
+    let cov_numerator: f64 = x_data.iter().zip(y_data.iter())
+        .map(|(&x, &y)| (x - x_mean) * (y - y_mean))
+        .sum();
+
+    Ok(cov_numerator / (n - 1.0))
+}
 
 
 

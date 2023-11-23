@@ -62,6 +62,15 @@ pub fn mean(data: &PyArray1<f64>) -> PyResult<f64> {
 
 
 #[pyfunction]
+pub fn mode(data: &PyArray1<f64>) -> PyResult<f64> {
+    let data_slice = data.as_slice()?; // convert to rust slice
+    validate_statistical_input!(basic, &data_slice); // data validation macro
+    // figure out how to count most common values
+    Ok(())
+}
+
+
+#[pyfunction]
 pub fn trimmed_mean(data: &PyArray1<f64>, trim_percent: f64) -> PyResult<f64> {
     let data_slice = data.as_slice()?; // conversion to rust slice
     validate_statistical_input!(trimmed, data, trim_percent);

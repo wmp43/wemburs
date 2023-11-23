@@ -1,4 +1,10 @@
 pub mod descriptive_statistics;
+mod visualizations;
+mod inferential_statistics;
+mod outlier_detection;
+mod data_preprocessing;
+mod dataframe;
+
 use descriptive_statistics::*;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;

@@ -105,7 +105,8 @@ fn percentile_rs(data: &[f64], percentile: f64) -> f64 {
 
 #[pyfunction]
 pub fn mean(data: &PyArray1<f64>) -> PyResult<f64> {
-    let data_slice = data.as_slice()?; // convert to rust slice
+    let readonly_data = data.readonly(); // Bind the readonly array to a variable
+    let data_slice = readonly_data.as_slice()?;
     validate_statistical_input!(basic, &data_slice); // data validation macro
     let count = data_slice.len();
     let sum: f64 = data_slice.iter().sum();
@@ -113,7 +114,7 @@ pub fn mean(data: &PyArray1<f64>) -> PyResult<f64> {
 }
 
 
-// #[pyfunction]
+//  #[pyfunction]
 // pub fn mode(data: &PyArray1<f64>) -> PyResult<f64> {
 //     let data_slice = data.as_slice()?; // convert to rust slice
 //     validate_statistical_input!(basic, &data_slice); // data validation macro
@@ -124,7 +125,8 @@ pub fn mean(data: &PyArray1<f64>) -> PyResult<f64> {
 
 #[pyfunction]
 pub fn trimmed_mean(data: &PyArray1<f64>, trim_percent: f64) -> PyResult<f64> {
-    let data_slice = data.as_slice()?; // conversion to rust slice
+    let readonly_data = data.readonly(); // Bind the readonly array to a variable
+    let data_slice = readonly_data.as_slice()?;
     validate_statistical_input!(trimmed, &data_slice, trim_percent);
     let n_to_trim = ((data_slice.len() as f64) * trim_percent) as usize;
     let mut sorted_data = data_slice.to_vec();
@@ -138,8 +140,12 @@ pub fn trimmed_mean(data: &PyArray1<f64>, trim_percent: f64) -> PyResult<f64> {
 
 #[pyfunction]
 pub fn weighted_mean(data: &PyArray1<f64>, weights: &PyArray1<f64>) -> PyResult<f64> {
-    let data_slice = data.as_slice()?;
-    let weights_slice = weights.as_slice()?;
+    let readonly_data = data.readonly(); // Bind the readonly array to a variable
+    let data_slice = readonly_data.as_slice()?;
+
+    let readonly_weights = weights.readonly(); // Bind the readonly array to a variable
+    let weights_slice = readonly_weights.as_slice()?;
+
     validate_statistical_input!(weighted, &data_slice, &weights_slice);
     let numerator_cum_sum: f64 = data_slice.iter()
         .zip(weights_slice.iter()).map(|(&d, &w)| w * d).sum();
@@ -153,7 +159,8 @@ pub fn weighted_mean(data: &PyArray1<f64>, weights: &PyArray1<f64>) -> PyResult<
 
 #[pyfunction]
 pub fn median(data: &PyArray1<f64>) -> PyResult<f64> {
-    let data_slice = data.as_slice()?;
+    let readonly_data = data.readonly(); // Bind the readonly array to a variable
+    let data_slice = readonly_data.as_slice()?;
     validate_statistical_input!(basic, &data_slice);
     let count = data_slice.len();
     let mut sorted_data = data_slice.to_vec();
@@ -173,7 +180,8 @@ pub fn median(data: &PyArray1<f64>) -> PyResult<f64> {
 
 #[pyfunction]
 pub fn variance(data: &PyArray1<f64>) -> PyResult<f64> {
-    let data_slice = data.as_slice()?;
+    let readonly_data = data.readonly(); // Bind the readonly array to a variable
+    let data_slice = readonly_data.as_slice()?;
     validate_statistical_input!(basic, &data_slice);
     let mean_value: f64 = mean_rs(data_slice);
     let count: usize = data_slice.len();
@@ -190,7 +198,8 @@ pub fn variance(data: &PyArray1<f64>) -> PyResult<f64> {
 #[pyfunction]
 pub fn trimmed_variance(data: &PyArray1<f64>, trim_percent: f64) -> PyResult<f64> {
     // Trimmed Var, analagous to trimmed mean.
-    let data_slice = data.as_slice()?;
+    let readonly_data = data.readonly(); // Bind the readonly array to a variable
+    let data_slice = readonly_data.as_slice()?;
     validate_statistical_input!(trimmed, &data_slice, trim_percent);
     let count: usize = data_slice.len();
 
@@ -212,7 +221,8 @@ pub fn trimmed_variance(data: &PyArray1<f64>, trim_percent: f64) -> PyResult<f64
 pub fn median_absolute_deviation(data: &PyArray1<f64>) -> PyResult<f64> {
     // Median absolute deviation
     // MAD = abs(x_i - median(x))
-    let data_slice = data.as_slice()?;
+    let readonly_data = data.readonly(); // Bind the readonly array to a variable
+    let data_slice = readonly_data.as_slice()?;
     validate_statistical_input!(basic, &data_slice);
     let median = median_rs(data_slice);
     let mut absolute_deviation: Vec<f64> = data_slice.iter()
@@ -225,19 +235,21 @@ pub fn median_absolute_deviation(data: &PyArray1<f64>) -> PyResult<f64> {
 
 #[pyfunction]
 pub fn iqr(data: &PyArray1<f64>) -> PyResult<f64> {
-    let data_slice = data.as_slice()?;
+    let readonly_data = data.readonly(); // Bind the readonly array to a variable
+    let data_slice = readonly_data.as_slice()?;
     validate_statistical_input!(basic, &data_slice);
     // need way to find 75th and 25th percentile
     if data_slice.len() < 2 { return Err(StatsError::InvalidInputValue.into()); }
-    let lower_quartile = percentile_rs(&mut data_slice, 25.0);
-    let upper_quartile = percentile_rs(&mut data_slice, 75.0);
+    let lower_quartile = percentile_rs(data_slice, 25.0);
+    let upper_quartile = percentile_rs(data_slice, 75.0);
     Ok(upper_quartile - lower_quartile)
 }
 
 
 #[pyfunction]
 pub fn range(data: &PyArray1<f64>) -> PyResult<f64> {
-    let data_slice = data.as_slice()?;
+    let readonly_data = data.readonly(); // Bind the readonly array to a variable
+    let data_slice = readonly_data.as_slice()?;
     validate_statistical_input!(basic, &data_slice);
 
     let min_val = data_slice.iter()
@@ -260,14 +272,18 @@ pub fn range(data: &PyArray1<f64>) -> PyResult<f64> {
 pub fn covariance(x: &PyArray1<f64>, y: &PyArray1<f64>) -> PyResult<f64> {
     // Covariance of two PyArrays
     // Sum((x_i - x_bar) * (y_i - y_bar)) / n - 1
-    let x_data = x.as_slice()?;
-    let y_data = y.as_slice()?;
+    let readonly_x_data = x.readonly();
+    let x_data= readonly_x_data.as_slice()?;
+
+    let readonly_y_data = y.readonly();
+    let y_data = readonly_y_data.as_slice()?;
+
     validate_statistical_input!(weighted, &x_data, &y_data);
 
     let n = x_data.len() as f64;
     if n < 2.0 { return Err(StatsError::InvalidInputValue.into()); }
-    let x_mean: f64 = mean_rs(&mut x_data);
-    let y_mean: f64 = mean_rs(&mut y_data);
+    let x_mean: f64 = mean_rs(x_data);
+    let y_mean: f64 = mean_rs(y_data);
 
     let cov_numerator: f64 = x_data.iter().zip(y_data.iter())
         .map(|(&x, &y)| (x - x_mean) * (y - y_mean))
@@ -282,8 +298,11 @@ pub fn correlation(x: &PyArray1<f64>, y: &PyArray1<f64>) -> PyResult<f64> {
     // crazy formula lol
     // I wonder what crazy bloke came up with this
     // he deserves a pint
-    let x_data = x.as_slice()?;
-    let y_data = y.as_slice()?;
+    let readonly_x_data = x.readonly();
+    let x_data= readonly_x_data.as_slice()?;
+
+    let readonly_y_data = y.readonly();
+    let y_data = readonly_y_data.as_slice()?;
     validate_statistical_input!(weighted, &x_data, &y_data);
 
     let n = x_data.len() as f64;
@@ -324,14 +343,15 @@ pub fn skewness(x: &PyArray1<f64>) -> PyResult<f64> {
     // 0 is symmetric distribution
     // >0 denotes asymmetric tail extending toward positive vals
     // < 0 denotes asymmetric tail extending toward negative vals
-    let data = x.as_slice()?;
-    validate_statistical_input!(basic, data);
+    let readonly_data = x.readonly();
+    let data= readonly_data.as_slice()?;
+    validate_statistical_input!(basic, &data);
 
     let n = data.len() as f64;
     if n < 2.0 { return Err(StatsError::InvalidInputValue.into()); }
 
-    let mean: f64 = mean_rs(&mut data);
-    let var: f64 = variance_rs(&mut data);
+    let mean: f64 = mean_rs(data);
+    let var: f64 = variance_rs(data);
     let std: f64 = var.sqrt();
     if std == 0.0 { return Err(StatsError::ZeroVariance.into()); }
 
@@ -349,16 +369,17 @@ pub fn kurtosis(x: &PyArray1<f64>) -> PyResult<f64> {
     // I'd rate this function 6.8 / 10.0
     // It would be cool if there were multiple methods for bias correction depending on distribution
     // maybe I could implement that
+    let readonly_data = x.readonly();
+    let data= readonly_data.as_slice()?;
 
-    let data = x.as_slice()?;
     validate_statistical_input!(basic, &data);
     let n = data.len() as f64;
     if n < 3.0 { return Err(StatsError::InvalidInputValue.into()); }
 
     let normalization_factor: f64 = (n * (n + 1.0)) / ((n - 1.0) * (n - 2.0) * (n - 3.0));
 
-    let mean: f64 = mean_rs(&mut data);
-    let var: f64 = variance_rs(&mut data);
+    let mean: f64 = mean_rs(data);
+    let var: f64 = variance_rs(data);
     let std: f64 = var.sqrt();
     if std == 0.0 { return Err(StatsError::ZeroVariance.into()); }
 
@@ -374,7 +395,8 @@ pub fn kurtosis(x: &PyArray1<f64>) -> PyResult<f64> {
 #[pyfunction]
 pub fn summary_statistics(x: &PyArray1<f64>) -> PyResult<PyObject> {
     let py = unsafe { Python::assume_gil_acquired() };
-    let data = x.as_slice()?;
+    let readonly_data = x.readonly();
+    let data = readonly_data.as_slice()?;
 
     validate_statistical_input!(basic, data);
 

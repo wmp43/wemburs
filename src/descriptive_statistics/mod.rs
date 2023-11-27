@@ -8,7 +8,7 @@ mod unit_tests;
 pub use crate::descriptive_statistics::errors::*;
 use pyo3::types::PyDict;
 use statrs::statistics::Data;
-use statrs::statistics::{Statistics, Median, MeanN, VarianceN};
+//use statrs::statistics::{Statistics, Median, MeanN, VarianceN};
 use pyo3::prelude::*;
 use numpy::{PyArray1};
 
@@ -51,22 +51,55 @@ macro_rules! validate_statistical_input {
     }
 }
 
-fn median_rs(data: &mut [f64]) -> f64 {
-    let data = Data::new(data);
-    let median = Median::from_data(&data).unwrap();
-    median.value()
+fn median_rs(data: &[f64]) -> f64 {
+    let mut data_copy = data.to_vec(); // Clone the data into a new Vec
+    data_copy.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    let mid = data_copy.len() / 2;
+    if data_copy.len() % 2 == 0 {
+        (data_copy[mid - 1] + data_copy[mid]) / 2.0
+    } else {
+        data_copy[mid]
+    }
 }
 
-fn mean_rs(data: &mut [f64]) -> f64 {
-    let data = Data::new(data);
-    let mean = MeanN::from_data(&data).unwrap();
-    mean.value()
+fn mean_rs(data: &[f64]) -> f64 {
+    let mut data_copy = data.to_vec();
+    let sum: f64 = data_copy.iter().sum();
+    sum / data_copy.len() as f64
 }
 
-fn variance_rs(data: &mut [f64]) -> f64 {
-    let data = Data::new(data);
-    let mean = VarianceN::from_data(&data).unwrap();
-    mean.value()
+fn variance_rs(data:  &[f64]) -> f64 {
+    let mut data_copy = data.to_vec();
+    let mean = mean_rs(data);
+    let sum_of_squared_diffs: f64 = data_copy.iter()
+        .map(|value| {
+            let diff = value - mean;
+            diff * diff
+        })
+        .sum();
+    sum_of_squared_diffs / data_copy.len() as f64 // Use (data.len() - 1) for sample variance
+}
+
+fn percentile_rs(data: &[f64], percentile: f64) -> f64 {
+    let mut data_copy = data.to_vec();
+    data_copy.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+
+    if percentile == 0.0 {
+        return *data_copy.first().unwrap();
+    } else if percentile == 100.0 {
+        return *data_copy.last().unwrap();
+    }
+
+    let length = data_copy.len() as f64;
+    let rank = (percentile / 100.0) * (length - 1.0);
+    let lower = rank.floor() as usize;
+    let upper = rank.ceil() as usize;
+
+    if lower == upper {
+        data_copy[lower]
+    } else {
+        data_copy[lower] + (rank - lower as f64) * (data_copy[upper] - data_copy[lower])
+    }
 }
 
 
@@ -142,15 +175,14 @@ pub fn median(data: &PyArray1<f64>) -> PyResult<f64> {
 pub fn variance(data: &PyArray1<f64>) -> PyResult<f64> {
     let data_slice = data.as_slice()?;
     validate_statistical_input!(basic, &data_slice);
-    let mean_value: f64 = mean_rs(&mut data_slice);
-    let count: &usize = &data_slice.len();
+    let mean_value: f64 = mean_rs(data_slice);
+    let count: usize = data_slice.len();
     if count < 2 { return Err(StatsError::EmptyDataSet.into()); }
-    let mean = mean_rs( &mut data_slice);
     let sum_sq_diff: f64 = data_slice.iter().map(|&value| {
         let diff = value as f64 - mean_value;
         diff * diff
     }).sum();
-    let variance = sum_sq_diff / (*count as f64 - 1.0);
+    let variance = sum_sq_diff / ((count - 1) as f64);
     Ok(variance)
 }
 
@@ -182,7 +214,7 @@ pub fn median_absolute_deviation(data: &PyArray1<f64>) -> PyResult<f64> {
     // MAD = abs(x_i - median(x))
     let data_slice = data.as_slice()?;
     validate_statistical_input!(basic, &data_slice);
-    let median = median_rs(&mut data_slice);
+    let median = median_rs(data_slice);
     let mut absolute_deviation: Vec<f64> = data_slice.iter()
         .map(|&x| (x - median).abs())
         .collect();
@@ -197,12 +229,8 @@ pub fn iqr(data: &PyArray1<f64>) -> PyResult<f64> {
     validate_statistical_input!(basic, &data_slice);
     // need way to find 75th and 25th percentile
     if data_slice.len() < 2 { return Err(StatsError::InvalidInputValue.into()); }
-    let mut sorted_data = data_slice.to_vec();
-    sorted_data.sort_by(|a, b| a.partial_cmp(b).unwrap());
-    let data_obj = Data::new(sorted_data);
-    // Todo: Edit below to avoid unwrap() no panic! allowed
-    let lower_quartile = data_obj.percentile(25.0).unwrap();
-    let upper_quartile = data_obj.percentile(75.0).unwrap();
+    let lower_quartile = percentile_rs(&mut data_slice, 25.0);
+    let upper_quartile = percentile_rs(&mut data_slice, 75.0);
     Ok(upper_quartile - lower_quartile)
 }
 
@@ -214,14 +242,16 @@ pub fn range(data: &PyArray1<f64>) -> PyResult<f64> {
 
     let min_val = data_slice.iter()
         .min_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
-        .ok_or_else(|| StatsError::MinMaxError.into())?;
+        .ok_or(StatsError::MinMaxError)?;
 
     let max_val = data_slice.iter()
         .max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
-        .ok_or_else(|| StatsError::MinMaxError.into())?;
+        .ok_or(StatsError::MinMaxError)?;
 
     Ok((max_val - min_val).abs())
 }
+
+
 
 
 

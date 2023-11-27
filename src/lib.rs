@@ -1,15 +1,8 @@
 pub mod descriptive_statistics;
-mod visualizations;
-mod inferential_statistics;
-mod outlier_detection;
-mod data_preprocessing;
-mod dataframe;
-
-use descriptive_statistics::*;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
-use pyo3::wrap_pymodule;
 
+//
 #[pymodule]
 fn wemburs(py: Python, m: &PyModule) -> PyResult<()> {
     let dstats = PyModule::new(py, "descriptive_statistics")?;
@@ -29,7 +22,7 @@ fn wemburs(py: Python, m: &PyModule) -> PyResult<()> {
     dstats.add_function(wrap_pyfunction!(descriptive_statistics::kurtosis, dstats)?)?;
     dstats.add_function(wrap_pyfunction!(descriptive_statistics::summary_statistics, dstats)?)?;
     m.add_submodule(dstats)?;
-    Ok(());
+    Ok(())
 }
     // Implement November 22nd
     //

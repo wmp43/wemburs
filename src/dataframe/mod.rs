@@ -1,5 +1,4 @@
 // Functions
-
 // apply_methods: Execute statistical methods on columns of a table-like dataset.
 // summarize_data: Generate a snapshot of the main characteristics of each column in the dataset.
 // filter_rows: Select rows of the dataset based on specific criteria.

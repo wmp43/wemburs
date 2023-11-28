@@ -1,9 +1,5 @@
 // In descriptive_statistics/mod.rs
 pub mod errors;
-
-#[cfg(test)]
-mod unit_tests;
-
 // At the top of your mod.rs or any other file where you need these modules
 pub use crate::descriptive_statistics::errors::*;
 use pyo3::types::PyDict;
@@ -14,7 +10,7 @@ use numpy::{PyArray1};
 
 
 
-macro_rules! validate_statistical_input {
+pub macro_rules! validate_statistical_input {
     // Basic array validation
     (basic, $data:expr) => {{
         if $data.is_empty() {
@@ -51,7 +47,7 @@ macro_rules! validate_statistical_input {
     }
 }
 
-fn median_rs(data: &[f64]) -> f64 {
+pub fn median_rs(data: &[f64]) -> f64 {
     let mut data_copy = data.to_vec(); // Clone the data into a new Vec
     data_copy.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
     let mid = data_copy.len() / 2;
@@ -62,13 +58,13 @@ fn median_rs(data: &[f64]) -> f64 {
     }
 }
 
-fn mean_rs(data: &[f64]) -> f64 {
+pub fn mean_rs(data: &[f64]) -> f64 {
     let mut data_copy = data.to_vec();
     let sum: f64 = data_copy.iter().sum();
     sum / data_copy.len() as f64
 }
 
-fn variance_rs(data:  &[f64]) -> f64 {
+pub fn variance_rs(data:  &[f64]) -> f64 {
     let mut data_copy = data.to_vec();
     let mean = mean_rs(data);
     let sum_of_squared_diffs: f64 = data_copy.iter()
@@ -80,7 +76,7 @@ fn variance_rs(data:  &[f64]) -> f64 {
     sum_of_squared_diffs / data_copy.len() as f64 // Use (data.len() - 1) for sample variance
 }
 
-fn percentile_rs(data: &[f64], percentile: f64) -> f64 {
+pub fn percentile_rs(data: &[f64], percentile: f64) -> f64 {
     let mut data_copy = data.to_vec();
     data_copy.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
 

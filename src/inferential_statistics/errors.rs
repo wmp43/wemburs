@@ -10,7 +10,8 @@ pub enum StatsError{
     InvalidInputValue,
     InconsistentLength,
     MinMaxError,
-    ZeroVariance
+    ZeroVariance,
+    UnderlyingError,
 }
 
 impl std::fmt::Display for StatsError {
@@ -23,7 +24,8 @@ impl std::fmt::Display for StatsError {
                 StatsError::InvalidInputValue => "Input contains invalid values (e.g., NaN or Infinity).",
                 StatsError::InconsistentLength => "Input data and weight arrays length do not match",
                 StatsError::MinMaxError => "Cannot compute min or max: the dataset is empty or contains invalid values.",
-                StatsError::ZeroVariance => "Cannot compute: one or both variables have zero variance."
+                StatsError::ZeroVariance => "Cannot compute: one or both variables have zero variance.",
+                StatsError::UnderlyingError => "Error in Underlying Rust Packages",
             }
         )
     }
@@ -38,6 +40,7 @@ impl From<StatsError> for PyErr {
             StatsError::InconsistentLength => PyValueError::new_err(err.to_string()),
             StatsError::MinMaxError => PyValueError::new_err(err.to_string()),
             StatsError::ZeroVariance => PyValueError::new_err(err.to_string()),
+            StatsError::UnderlyingError => PyValueError::new_err(err.to_string()),
         }
     }
 }

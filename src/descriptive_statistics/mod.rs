@@ -73,7 +73,7 @@ pub fn variance_rs(data:  &[f64]) -> f64 {
             diff * diff
         })
         .sum();
-    sum_of_squared_diffs / data_copy.len() as f64 // Use (data.len() - 1) for sample variance
+    sum_of_squared_diffs / data_copy.len() as f64
 }
 
 pub fn percentile_rs(data: &[f64], percentile: f64) -> f64 {

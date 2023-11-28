@@ -30,7 +30,7 @@ fn wemburs(py: Python, m: &PyModule) -> PyResult<()> {
 
     // inferential statistics - wee woo waa
     m.add_function(wrap_pyfunction!(confidence_interval, m)?)?;
-    m.add_function(wrap_pyfunction!(effect_size, m)?)?;
+    //m.add_function(wrap_pyfunction!(effect_size, m)?)?;
     m.add_function(wrap_pyfunction!(kolmogorov_smirnov_test, m)?)?;
     m.add_function(wrap_pyfunction!(t_test, m)?)?;
     m.add_function(wrap_pyfunction!(chi_squared_test, m)?)?;

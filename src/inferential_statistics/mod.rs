@@ -9,29 +9,78 @@
 /// imports
 pub mod errors;
 pub use crate::inferential_statistics::errors::*;
-pub use crate::descriptive_statistics::{mean_rs, median_rs, variance_rs, percentile_rs};
+pub use crate::descriptive_statistics::{mean_rs, median_rs, variance_rs, percentile_rs, validate_statistical_input};
 
+use statrs::distribution::{Normal, Univariate};
 use pyo3::types::PyDict;
-use statrs::statistics::Data;
 use pyo3::prelude::*;
 use numpy::{PyArray1};
 
 /// Data Validation Macro
-
+// Also Imported from descriptive statistics.
+// May need to develop a new one
 /// Rust Native Computations
-
+// Simply imported from descriptive Statistics
 /// Pyfunctions
 
-pub fn confidence_interval(x: &PyArray1<f64>, ci: f64) -> PyResult<f64> {
+pub fn confidence_interval(x: &PyArray1<f64>, ci: f64) -> PyResult<(f64, f64)> {
     // Takes array, ci.
     // Maybe returns tuple with lower bound and upper bound
     let read_x = x.readonly();
     let data = read_x.as_slice()?;
-    // Validate input macro here!!
-    // Rust native
-    let (var, sqrt, mean, n)  = (variance_rs(&data), var.sqrt(), mean_rs(data), data.len());
-    // need pyDict, Hashmap!!! equivalent for CI to z score mapping
-    // x_bar +- Z*(std/n.sqrt())
+    validate_statistical_input!(basic, data);
+    if ci < 0.0 || ci > 1.0 { Err(StatsError::InvalidInput.into())? };
 
+    let (var, mean, n)  = (variance_rs(&data), mean_rs(data), data.len() as f64);
+    let std_error = (var / n).sqrt();
+
+    let alpha = 1.0 - ci;
+    let z = Normal::new(0.0, 1.0)
+        .map_err(|_| StatsError::UnderlyingError.into())?
+        .inverse_cdf(1.0 - alpha / 2.0);
+
+    // let lower_bound = x_bar - Z*(std/n.sqrt())
+    // let upper_bound = x_bar + Z*(std.n.sqrt())
+    let lower_bound = mean - z * std_error;
+    let upper_bound = mean + z * std_error;
+
+    Ok((lower_bound, upper_bound))
 }
 
+pub fn kolmogorov_smirnov_test(x: &PyArray1<f64>, y: &PyArray1<f64>) -> PyResult<f64> {
+    let read_x = x.readonly();
+    let x_data = read_x.as_slice()?;
+    validate_statistical_input!(basic, x_data);
+
+
+    let read_y = y.readonly();
+    let y_data = read_y.as_slice()?;
+    validate_statistical_input!(basic, y_data);
+
+    // Sort both arrays
+    let mut x_sorted = x_data.to_vec();
+    x_sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
+
+    let mut y_sorted = y_data.to_vec();
+    y_sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
+
+    // Combine, deduplicate, and sort
+    let mut combined = [x_sorted.as_slice(), y_sorted.as_slice()].concat();
+    combined.sort_unstable();
+    combined.dedup();
+
+    // Calculate the ECDFs and find the maximum difference
+    let mut max_diff = 0.0;
+    for &value in &combined {
+        let ecdf_x = x_sorted.iter().filter(|&&v| v <= value).count() as f64 / x_sorted.len() as f64;
+        let ecdf_y = y_sorted.iter().filter(|&&v| v <= value).count() as f64 / y_sorted.len() as f64;
+        let diff = (ecdf_x - ecdf_y).abs();
+        if diff > max_diff {
+            max_diff = diff;
+        }
+    }
+
+    Ok(max_diff)
+}
+
+}

@@ -82,5 +82,3 @@ pub fn kolmogorov_smirnov_test(x: &PyArray1<f64>, y: &PyArray1<f64>) -> PyResult
 
     Ok(max_diff)
 }
-
-}

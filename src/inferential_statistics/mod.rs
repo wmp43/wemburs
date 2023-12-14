@@ -9,9 +9,10 @@
 /// imports
 pub mod errors;
 pub use crate::inferential_statistics::errors::*;
-pub use crate::descriptive_statistics::{mean_rs, median_rs, variance_rs, percentile_rs, validate_statistical_input};
+pub use crate::{convert_from_pyarray, descriptive_statistics::{mean_rs, median_rs, variance_rs,
+                                                               percentile_rs}};
 
-use statrs::distribution::{Normal, Univariate};
+use statrs::distribution::{Normal};
 use pyo3::types::PyDict;
 use pyo3::prelude::*;
 use numpy::{PyArray1};
@@ -22,13 +23,13 @@ use numpy::{PyArray1};
 /// Rust Native Computations
 // Simply imported from descriptive Statistics
 /// Pyfunctions
+///
 
 pub fn confidence_interval(x: &PyArray1<f64>, ci: f64) -> PyResult<(f64, f64)> {
     // Takes array, ci.
     // Maybe returns tuple with lower bound and upper bound
-    let read_x = x.readonly();
-    let data = read_x.as_slice()?;
-    validate_statistical_input!(basic, data);
+    let data_slice = convert_from_pyarray!(data);
+    validate_statistical_input!(basic, data_slice);
     if ci < 0.0 || ci > 1.0 { Err(StatsError::InvalidInput.into())? };
 
     let (var, mean, n)  = (variance_rs(&data), mean_rs(data), data.len() as f64);
@@ -48,13 +49,9 @@ pub fn confidence_interval(x: &PyArray1<f64>, ci: f64) -> PyResult<(f64, f64)> {
 }
 
 pub fn kolmogorov_smirnov_test(x: &PyArray1<f64>, y: &PyArray1<f64>) -> PyResult<f64> {
-    let read_x = x.readonly();
-    let x_data = read_x.as_slice()?;
+    let x_data = convert_from_pyarray!(x);
+    let y_data = convert_from_pyarray!(y);
     validate_statistical_input!(basic, x_data);
-
-
-    let read_y = y.readonly();
-    let y_data = read_y.as_slice()?;
     validate_statistical_input!(basic, y_data);
 
     // Sort both arrays

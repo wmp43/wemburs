@@ -6,10 +6,12 @@
 // effect size -- Quantify the strength of the relationship between two variables.
 // kolmogorov-smirnov tests -- compare distributions
 
+use statrs::distribution::ContinuousCDF;
 /// imports
 pub mod errors;
 pub use crate::inferential_statistics::errors::*;
-pub use crate::{convert_from_pyarray, descriptive_statistics::{mean_rs, median_rs, variance_rs,
+pub use crate::{convert_from_pyarray, validate_statistical_input,
+                descriptive_statistics::{mean_rs, median_rs, variance_rs,
                                                                percentile_rs}};
 
 use statrs::distribution::{Normal};
@@ -24,20 +26,23 @@ use numpy::{PyArray1};
 // Simply imported from descriptive Statistics
 /// Pyfunctions
 ///
-
+#[pyfunction]
 pub fn confidence_interval(x: &PyArray1<f64>, ci: f64) -> PyResult<(f64, f64)> {
     // Takes array, ci.
     // Maybe returns tuple with lower bound and upper bound
-    let data_slice = convert_from_pyarray!(data);
-    validate_statistical_input!(basic, data_slice);
-    if ci < 0.0 || ci > 1.0 { Err(StatsError::InvalidInput.into())? };
+    let x_data = convert_from_pyarray!(x);
+    validate_statistical_input!(basic, x_data);
+    if ci < 0.0 || ci > 1.0 {
+        return Err(PyErr::from(StatsError::InvalidInputValue));
+    };
 
-    let (var, mean, n)  = (variance_rs(&data), mean_rs(data), data.len() as f64);
+    let (var, mean, n)  = (variance_rs(&x_data), mean_rs(x_data), x_data.len() as f64);
     let std_error = (var / n).sqrt();
 
     let alpha = 1.0 - ci;
     let z = Normal::new(0.0, 1.0)
-        .map_err(|_| StatsError::UnderlyingError.into())?
+
+        .map_err(|_| (PyErr::from(StatsError::UnderlyingError)))?
         .inverse_cdf(1.0 - alpha / 2.0);
 
     // let lower_bound = x_bar - Z*(std/n.sqrt())
@@ -48,6 +53,7 @@ pub fn confidence_interval(x: &PyArray1<f64>, ci: f64) -> PyResult<(f64, f64)> {
     Ok((lower_bound, upper_bound))
 }
 
+#[pyfunction]
 pub fn kolmogorov_smirnov_test(x: &PyArray1<f64>, y: &PyArray1<f64>) -> PyResult<f64> {
     let x_data = convert_from_pyarray!(x);
     let y_data = convert_from_pyarray!(y);
@@ -56,15 +62,20 @@ pub fn kolmogorov_smirnov_test(x: &PyArray1<f64>, y: &PyArray1<f64>) -> PyResult
 
     // Sort both arrays
     let mut x_sorted = x_data.to_vec();
-    x_sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    x_sorted.sort_by(|a, b| a.partial_cmp(b)
+        .unwrap_or(std::cmp::Ordering::Greater));
+
 
     let mut y_sorted = y_data.to_vec();
-    y_sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    y_sorted.sort_by(|a, b| a.partial_cmp(b)
+        .unwrap_or(std::cmp::Ordering::Greater));
+
 
     // Combine, deduplicate, and sort
     let mut combined = [x_sorted.as_slice(), y_sorted.as_slice()].concat();
-    combined.sort_unstable();
-    combined.dedup();
+    combined.sort_by(|a, b| a.partial_cmp(b)
+        .unwrap_or(std::cmp::Ordering::Greater));
+
 
     // Calculate the ECDFs and find the maximum difference
     let mut max_diff = 0.0;

@@ -6,7 +6,7 @@ pub use descriptive_statistics::{mean, median, trimmed_mean, weighted_mean, vari
                                  trimmed_variance, median_absolute_deviation, iqr, range,
                                  covariance, correlation, skewness, kurtosis, summary_statistics};
 
-pub use inferential_statistics::{confidence_interval, effect_size};
+pub use inferential_statistics::{confidence_interval, kolmogorov_smirnov_test};
 
 
 //
@@ -32,16 +32,16 @@ fn wemburs(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(confidence_interval, m)?)?;
     //m.add_function(wrap_pyfunction!(effect_size, m)?)?;
     m.add_function(wrap_pyfunction!(kolmogorov_smirnov_test, m)?)?;
-    m.add_function(wrap_pyfunction!(t_test, m)?)?;
-    m.add_function(wrap_pyfunction!(chi_squared_test, m)?)?;
-    m.add_function(wrap_pyfunction!(anova, m)?)?;
-    m.add_function(wrap_pyfunction!(mann_whitney_u_test, m)?)?;
-    m.add_function(wrap_pyfunction!(spearman_rank_correlation_test, m)?)?;
-    m.add_function(wrap_pyfunction!(fisher_exact_test, m)?)?;
-    m.add_function(wrap_pyfunction!(kruskal_wallis_test, m)?)?;
-    m.add_function(wrap_pyfunction!(wilcoxon_signed_rank_test, m)?)?;
-    m.add_function(wrap_pyfunction!(fisher_exact_test, m)?)?;
-    m.add_function(wrap_pyfunction!(power_analysis, m)?)?;
+    // m.add_function(wrap_pyfunction!(t_test, m)?)?;
+    // m.add_function(wrap_pyfunction!(chi_squared_test, m)?)?;
+    // m.add_function(wrap_pyfunction!(anova, m)?)?;
+    // m.add_function(wrap_pyfunction!(mann_whitney_u_test, m)?)?;
+    // m.add_function(wrap_pyfunction!(spearman_rank_correlation_test, m)?)?;
+    // m.add_function(wrap_pyfunction!(fisher_exact_test, m)?)?;
+    // m.add_function(wrap_pyfunction!(kruskal_wallis_test, m)?)?;
+    // m.add_function(wrap_pyfunction!(wilcoxon_signed_rank_test, m)?)?;
+    // m.add_function(wrap_pyfunction!(fisher_exact_test, m)?)?;
+    // m.add_function(wrap_pyfunction!(power_analysis, m)?)?;
     Ok(())
 }
     // Implement November 22nd

@@ -20,11 +20,13 @@ use numpy::{PyArray1};
 #[macro_export] macro_rules! validate_statistical_input {
     // Basic array validation
     (basic, $data:expr) => {
-        if $data.is_empty() {
+        let input_data = $data;
+
+        if input_data.is_empty() {
             return Err(StatsError::EmptyDataSet.into());
         }
 
-        if $data.iter().any(|&val| val.is_nan() || val.is_infinite()) {
+        if input_data.iter().any(|&val| val.is_nan() || val.is_infinite()) {
             return Err(StatsError::InvalidInputValue.into());
         }
     };
@@ -250,10 +252,6 @@ pub fn range(x: &PyArray1<f64>) -> PyResult<f64> {
 }
 
 
-
-
-
-
 #[pyfunction]
 pub fn covariance(x: &PyArray1<f64>, y: &PyArray1<f64>) -> PyResult<f64> {
     // Covariance of two PyArrays
@@ -372,17 +370,17 @@ pub fn kurtosis(x: &PyArray1<f64>) -> PyResult<f64> {
 #[pyfunction]
 pub fn summary_statistics(x: &PyArray1<f64>) -> PyResult<PyObject> {
     let py = unsafe { Python::assume_gil_acquired() };
-    let x_ = convert_from_pyarray!(x);
-    validate_statistical_input!(basic, x_);
+    let x_val = convert_from_pyarray!(x);
+    validate_statistical_input!(basic, x_val);
 
-    let mean = mean(x_)?;
-    let median = median(x_)?;
-    let range = range(x_)?;
-    let variance = variance(x_)?;
-    let iqr = iqr(x_)?;
-    let mad = median_absolute_deviation(x_)?;
-    let skew = skewness(x_)?;
-    let kurt = kurtosis(x_)?;
+    let mean = mean(x)?;
+    let median = median(x)?;
+    let range = range(x)?;
+    let variance = variance(x)?;
+    let iqr = iqr(x)?;
+    let mad = median_absolute_deviation(x)?;
+    let skew = skewness(x)?;
+    let kurt = kurtosis(x)?;
 
     let summary = PyDict::new(py);
     summary.set_item("mean", mean)?;
@@ -396,10 +394,6 @@ pub fn summary_statistics(x: &PyArray1<f64>) -> PyResult<PyObject> {
 
     Ok(summary.into())
 }
-
-
-
-// Adding to pymodule
 
 
 

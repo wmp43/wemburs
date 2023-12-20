@@ -1,5 +1,7 @@
 pub mod descriptive_statistics;
 pub mod inferential_statistics;
+pub mod linear_models;
+
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 pub use descriptive_statistics::{mean, median, trimmed_mean, weighted_mean, variance,

@@ -60,7 +60,6 @@ pub struct LogisticRegression {
 
 struct MeanSquaredErrorScorer;
 
-
 impl Scorer for MeanSquaredErrorScorer {
     fn score(&self, predictions: &Array1<f64>, actuals: &Array1<f64>) -> f64 {
         // zip method
@@ -73,26 +72,6 @@ impl Scorer for MeanSquaredErrorScorer {
         Ok(mse)
     }
 }
-// Input:
-// X = Matrix of input features (each row is a training example, each column is a feature)
-// y = Vector of target values
-// alpha = Learning rate
-// iterations = Number of iterations for the gradient descent
-//
-// Output:
-// beta = Vector of fitted coefficients (including intercept)
-//
-// Procedure:
-// 1: Initialize beta (e.g., to zeros or small random numbers)
-// 2: for iter in 1 to iterations do
-// 3:     predictions = X * beta               // Calculate predictions for the current beta
-// 4:     errors = predictions - y             // Compute the difference between predictions and actual values
-// 5:     for j in 1 to length(beta) do
-// 6:         gradient_j = sum(errors * X[:, j]) / length(y)  // Calculate the gradient for beta_j
-// 7:         beta[j] = beta[j] - alpha * gradient_j          // Update beta_j
-// 8:     end for
-// 9: end for
-
 impl LinearModel for LinearRegression {
     fn fit(&mut self, features: &Array2<f64>, target: &Array1<f64>) {
         let learning_rate = 0.01;
@@ -116,7 +95,7 @@ impl LinearModel for LinearRegression {
         let mut predictions = Array1::zeros(features.nrows());
 
         for (i, feature_row) in features.outer_iter().enumerate() {
-            let mut prediction = self.coef[0]; // Start with the intercept
+            let mut prediction = self.coef[0];
             for (feature, &coef) in feature_row.iter().zip(&self.coef[1..]) {
                 prediction += feature * coef;
             }
@@ -134,3 +113,25 @@ impl LinearModel for LinearRegression {
         &self.coef
     }
 }
+
+
+
+// Input:
+// X = Matrix of input features (each row is a training example, each column is a feature)
+// y = Vector of target values
+// alpha = Learning rate
+// iterations = Number of iterations for the gradient descent
+//
+// Output:
+// beta = Vector of fitted coefficients (including intercept)
+//
+// Procedure:
+// 1: Initialize beta (e.g., to zeros or small random numbers)
+// 2: for iter in 1 to iterations do
+// 3:     predictions = X * beta               // Calculate predictions for the current beta
+// 4:     errors = predictions - y             // Compute the difference between predictions and actual values
+// 5:     for j in 1 to length(beta) do
+// 6:         gradient_j = sum(errors * X[:, j]) / length(y)  // Calculate the gradient for beta_j
+// 7:         beta[j] = beta[j] - alpha * gradient_j          // Update beta_j
+// 8:     end for
+// 9: end for

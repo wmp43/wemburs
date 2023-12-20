@@ -1,6 +1,7 @@
 pub mod descriptive_statistics;
 pub mod inferential_statistics;
 pub mod linear_models;
+mod utils;
 
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
@@ -9,7 +10,8 @@ pub use descriptive_statistics::{mean, median, trimmed_mean, weighted_mean, vari
                                  covariance, correlation, skewness, kurtosis, summary_statistics};
 
 pub use inferential_statistics::{confidence_interval, kolmogorov_smirnov_test};
-
+pub mod utils; // Or common, if you prefer that name
+pub use utils::pyarray_conversion::PyArrayConversion;
 
 //
 #[pymodule]

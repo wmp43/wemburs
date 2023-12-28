@@ -13,3 +13,6 @@ license = "MIT/Apache-2.0"
 [tool.maturin]
 name = "wemburs"
 features = ["pyo3/extension-module"]
+
+[package.metadata.maturin]
+interpreter = "cpython"

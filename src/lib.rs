@@ -17,7 +17,7 @@ pub use inferential_statistics::{confidence_interval, kolmogorov_smirnov_test};
 
 //
 #[pymodule]
-fn wemburs(py: Python, m: &PyModule) -> PyResult<()> {
+fn wemburs(_py: Python, m: &PyModule) -> PyResult<()> {
     // descriptive statistics - yee yoo yaa
     m.add_function(wrap_pyfunction!(mean, m)?)?;
     m.add_function(wrap_pyfunction!(trimmed_mean, m)?)?;

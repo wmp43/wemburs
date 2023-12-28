@@ -1,6 +1,7 @@
 // In descriptive_statistics/mod.rs
 pub mod errors;
 // At the top of your mod.rs or any other file where you need these modules
+use ndarray::Array1;
 pub use crate::descriptive_statistics::errors::*;
 use pyo3::types::PyDict;
 //use statrs::statistics::{Statistics, Median, MeanN, VarianceN};
@@ -46,8 +47,8 @@ use crate::utils::from_pyarray1;
 }
 
 // Rust native functions
-pub fn median_rs(data: &[f64]) -> f64 {
-    let mut data_copy = data.to_vec(); // Clone the data into a new Vec
+pub fn median_rs(data: &Array1<f64>) -> f64 {
+    let mut data_copy = data.to_vec();
     data_copy.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
     let mid = data_copy.len() / 2;
     if data_copy.len() % 2 == 0 {
@@ -57,15 +58,14 @@ pub fn median_rs(data: &[f64]) -> f64 {
     }
 }
 
-pub fn mean_rs(data: &[f64]) -> f64 {
-    let mut data_copy = data.to_vec();
-    let sum: f64 = data_copy.iter().sum();
-    sum / data_copy.len() as f64
+pub fn mean_rs(data: &Array1<f64>) -> f64 {
+    let sum: f64 = data.sum();
+    sum / data.len() as f64
 }
 
-pub fn variance_rs(data:  &[f64]) -> f64 {
-    let mut data_copy = data.to_vec();
+pub fn variance_rs(data:  &Array1<f64>) -> f64 {
     let mean = mean_rs(data);
+    let data_copy = data.to_vec();
     let sum_of_squared_diffs: f64 = data_copy.iter()
         .map(|value| {
             let diff = value - mean;
@@ -75,7 +75,7 @@ pub fn variance_rs(data:  &[f64]) -> f64 {
     sum_of_squared_diffs / data_copy.len() as f64
 }
 
-pub fn percentile_rs(data: &[f64], percentile: f64) -> f64 {
+pub fn percentile_rs(data: &Array1<f64>, percentile: f64) -> f64 {
     let mut data_copy = data.to_vec();
     data_copy.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
 
@@ -103,11 +103,11 @@ pub fn mean(x: &PyAny) -> PyResult<f64> {
 // This is where new utils function should go
     let x_data = match from_pyarray1(x) {
         Ok(data) => data,
-        Err(e) => return Err(StatsError::Conversion.into()),
+        Err(_e) => return Err(StatsError::Conversion.into()),
     };
 
     validate_statistical_input!(basic, x_data); // data validation macro
-    let mean_value: f64 = mean_rs(x_data);
+    let mean_value: f64 = mean_rs(&x_data);
     Ok(mean_value)
 }
 
@@ -115,7 +115,7 @@ pub fn mean(x: &PyAny) -> PyResult<f64> {
 pub fn trimmed_mean(x: &PyAny, trim_percent: f64) -> PyResult<f64> {
     let x_data = match from_pyarray1(x) {
         Ok(data) => data,
-        Err(e) => return Err(StatsError::Conversion.into()),
+        Err(_e) => return Err(StatsError::Conversion.into()),
     };
     validate_statistical_input!(trimmed, &x_data, trim_percent);
     let n_to_trim = ((x_data.len() as f64) * trim_percent) as usize;
@@ -132,11 +132,11 @@ pub fn trimmed_mean(x: &PyAny, trim_percent: f64) -> PyResult<f64> {
 pub fn weighted_mean(x: &PyAny, y: &PyAny) -> PyResult<f64> {
     let x_data = match from_pyarray1(x) {
         Ok(data) => data,
-        Err(e) => return Err(StatsError::Conversion.into()),
+        Err(_e) => return Err(StatsError::Conversion.into()),
     };
     let y_data = match from_pyarray1(y) {
         Ok(data) => data,
-        Err(e) => return Err(StatsError::Conversion.into()),
+        Err(_e) => return Err(StatsError::Conversion.into()),
     };
 
     validate_statistical_input!(weighted, &x_data, &y_data);
@@ -158,7 +158,7 @@ pub fn weighted_mean(x: &PyAny, y: &PyAny) -> PyResult<f64> {
 pub fn median(x: &PyAny) -> PyResult<f64> {
     let x_data = match from_pyarray1(x) {
         Ok(data) => data,
-        Err(e) => return Err(StatsError::Conversion.into()),
+        Err(_e) => return Err(StatsError::Conversion.into()),
     };
     validate_statistical_input!(basic, &x_data);
     let count = x_data.len();
@@ -181,10 +181,10 @@ pub fn median(x: &PyAny) -> PyResult<f64> {
 pub fn variance(x: &PyAny) -> PyResult<f64> {
     let x_data = match from_pyarray1(x) {
         Ok(data) => data,
-        Err(e) => return Err(StatsError::Conversion.into()),
+        Err(_e) => return Err(StatsError::Conversion.into()),
     };
     validate_statistical_input!(basic, &x_data);
-    let mean_value: f64 = mean_rs(x_data);
+    let mean_value: f64 = mean_rs(&x_data);
     let count: usize = x_data.len();
     if count < 2 { return Err(StatsError::EmptyDataSet.into()); }
     let sum_sq_diff: f64 = x_data.iter().map(|&value| {
@@ -201,7 +201,7 @@ pub fn trimmed_variance(x: &PyAny, trim_percent: f64) -> PyResult<f64> {
     // Trimmed Var, analagous to trimmed mean.
     let x_data = match from_pyarray1(x) {
         Ok(data) => data,
-        Err(e) => return Err(StatsError::Conversion.into()),
+        Err(_e) => return Err(StatsError::Conversion.into()),
     };
     validate_statistical_input!(trimmed, &x_data, trim_percent);
     let count: usize = x_data.len();
@@ -210,11 +210,10 @@ pub fn trimmed_variance(x: &PyAny, trim_percent: f64) -> PyResult<f64> {
     // Check that there's enough data to trim
     if count < 2 * n_to_trim { return Err(StatsError::InvalidInputValue.into()); }
     let mut sorted_data = x_data.to_vec();
-    sorted_data.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    sorted_data.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
 
-    let mut trimmed_data = &sorted_data[n_to_trim..count - n_to_trim];
-
-    let trim_var = variance_rs(&mut trimmed_data);
+    let trimmed_data = Array1::from_vec(sorted_data[n_to_trim..count - n_to_trim].to_vec());
+    let trim_var = variance_rs(&trimmed_data);
 
     Ok(trim_var)
 }
@@ -226,14 +225,14 @@ pub fn median_absolute_deviation(x: &PyAny) -> PyResult<f64> {
     // MAD = abs(x_i - median(x))
     let x_data = match from_pyarray1(x) {
         Ok(data) => data,
-        Err(e) => return Err(StatsError::Conversion.into()),
+        Err(_e) => return Err(StatsError::Conversion.into()),
     };
     validate_statistical_input!(basic, &x_data);
-    let median = median_rs(x_data);
-    let mut absolute_deviation: Vec<f64> = x_data.iter()
+    let median = median_rs(&x_data);
+    let absolute_deviation: Array1<f64> = x_data.iter()
         .map(|&x| (x - median).abs())
         .collect();
-    let mad: f64 = median_rs(&mut absolute_deviation);
+    let mad: f64 = median_rs(&absolute_deviation);
     Ok(mad)
 }
 
@@ -242,13 +241,13 @@ pub fn median_absolute_deviation(x: &PyAny) -> PyResult<f64> {
 pub fn iqr(x: &PyAny) -> PyResult<f64> {
     let x_data = match from_pyarray1(x) {
         Ok(data) => data,
-        Err(e) => return Err(StatsError::Conversion.into()),
+        Err(_e) => return Err(StatsError::Conversion.into()),
     };
     validate_statistical_input!(basic, &x_data);
     // need way to find 75th and 25th percentile
     if x_data.len() < 2 { return Err(StatsError::InvalidInputValue.into()); }
-    let lower_quartile = percentile_rs(x_data, 25.0);
-    let upper_quartile = percentile_rs(x_data, 75.0);
+    let lower_quartile = percentile_rs(&x_data, 25.0);
+    let upper_quartile = percentile_rs(&x_data, 75.0);
     Ok(upper_quartile - lower_quartile)
 }
 
@@ -257,7 +256,7 @@ pub fn iqr(x: &PyAny) -> PyResult<f64> {
 pub fn range(x: &PyAny) -> PyResult<f64> {
     let x_data = match from_pyarray1(x) {
         Ok(data) => data,
-        Err(e) => return Err(StatsError::Conversion.into()),
+        Err(_e) => return Err(StatsError::Conversion.into()),
     };
     validate_statistical_input!(basic, &x_data);
 
@@ -279,18 +278,18 @@ pub fn covariance(x: &PyAny, y: &PyAny) -> PyResult<f64> {
     // Sum((x_i - x_bar) * (y_i - y_bar)) / n - 1
     let x_data = match from_pyarray1(x) {
         Ok(data) => data,
-        Err(e) => return Err(StatsError::Conversion.into()),
+        Err(_e) => return Err(StatsError::Conversion.into()),
     };
     let y_data = match from_pyarray1(y) {
         Ok(data) => data,
-        Err(e) => return Err(StatsError::Conversion.into()),
+        Err(_e) => return Err(StatsError::Conversion.into()),
     };
     validate_statistical_input!(weighted, &x_data, &y_data);
 
     let n = x_data.len() as f64;
     if n < 2.0 { return Err(StatsError::InvalidInputValue.into()); }
-    let x_mean: f64 = mean_rs(x_data);
-    let y_mean: f64 = mean_rs(y_data);
+    let x_mean: f64 = mean_rs(&x_data);
+    let y_mean: f64 = mean_rs(&y_data);
 
     let cov_numerator: f64 = x_data.iter().zip(y_data.iter())
         .map(|(&x, &y)| (x - x_mean) * (y - y_mean))
@@ -307,11 +306,11 @@ pub fn correlation(x: &PyAny, y: &PyAny) -> PyResult<f64> {
     // he deserves a pint
     let x_data = match from_pyarray1(x) {
         Ok(data) => data,
-        Err(e) => return Err(StatsError::Conversion.into()),
+        Err(_e) => return Err(StatsError::Conversion.into()),
     };
     let y_data = match from_pyarray1(y) {
         Ok(data) => data,
-        Err(e) => return Err(StatsError::Conversion.into()),
+        Err(_e) => return Err(StatsError::Conversion.into()),
     };
     validate_statistical_input!(weighted, &x_data, &y_data);
 
@@ -355,15 +354,15 @@ pub fn skewness(x: &PyAny) -> PyResult<f64> {
     // < 0 denotes asymmetric tail extending toward negative vals
     let x_data = match from_pyarray1(x) {
         Ok(data) => data,
-        Err(e) => return Err(StatsError::Conversion.into()),
+        Err(_e) => return Err(StatsError::Conversion.into()),
     };
     validate_statistical_input!(basic, &x_data);
 
     let n = x_data.len() as f64;
     if n < 2.0 { return Err(StatsError::InvalidInputValue.into()); }
 
-    let mean: f64 = mean_rs(x_data);
-    let var: f64 = variance_rs(x_data);
+    let mean: f64 = mean_rs(&x_data);
+    let var: f64 = variance_rs(&x_data);
     let std: f64 = var.sqrt();
     if std == 0.0 { return Err(StatsError::ZeroVariance.into()); }
 
@@ -383,7 +382,7 @@ pub fn kurtosis(x: &PyAny) -> PyResult<f64> {
     // maybe I could implement that
     let x_data = match from_pyarray1(x) {
         Ok(data) => data,
-        Err(e) => return Err(StatsError::Conversion.into()),
+        Err(_e) => return Err(StatsError::Conversion.into()),
     };
     validate_statistical_input!(basic, &x_data);
     let n = x_data.len() as f64;
@@ -391,8 +390,8 @@ pub fn kurtosis(x: &PyAny) -> PyResult<f64> {
 
     let normalization_factor: f64 = (n * (n + 1.0)) / ((n - 1.0) * (n - 2.0) * (n - 3.0));
 
-    let mean: f64 = mean_rs(x_data);
-    let var: f64 = variance_rs(x_data);
+    let mean: f64 = mean_rs(&x_data);
+    let var: f64 = variance_rs(&x_data);
     let std: f64 = var.sqrt();
     if std == 0.0 { return Err(StatsError::ZeroVariance.into()); }
 
@@ -411,7 +410,7 @@ pub fn summary_statistics(x: &PyAny) -> PyResult<PyObject> {
     let py = unsafe { Python::assume_gil_acquired() };
     let x_data = match from_pyarray1(x) {
         Ok(data) => data,
-        Err(e) => return Err(StatsError::Conversion.into()),
+        Err(_e) => return Err(StatsError::Conversion.into()),
     };
     validate_statistical_input!(basic, x_data);
 

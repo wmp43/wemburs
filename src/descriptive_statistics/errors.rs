@@ -41,7 +41,6 @@ impl From<StatsError> for PyErr {
             StatsError::MinMaxError => PyValueError::new_err(err.to_string()),
             StatsError::ZeroVariance => PyValueError::new_err(err.to_string()),
             StatsError::Conversion => PyValueError::new_err(err.to_string()),
-
         }
     }
 }

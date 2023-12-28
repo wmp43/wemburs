@@ -12,6 +12,7 @@ pub enum StatsError{
     MinMaxError,
     ZeroVariance,
     UnderlyingError,
+    Conversion
 }
 
 impl std::fmt::Display for StatsError {
@@ -26,11 +27,11 @@ impl std::fmt::Display for StatsError {
                 StatsError::MinMaxError => "Cannot compute min or max: the dataset is empty or contains invalid values.",
                 StatsError::ZeroVariance => "Cannot compute: one or both variables have zero variance.",
                 StatsError::UnderlyingError => "Error in Underlying Rust Packages",
+                StatsError::Conversion => "Cannot convert input array to numeric type."
             }
         )
     }
 }
-
 
 impl From<StatsError> for PyErr {
     fn from(err: StatsError) -> PyErr {
@@ -41,6 +42,7 @@ impl From<StatsError> for PyErr {
             StatsError::MinMaxError => PyValueError::new_err(err.to_string()),
             StatsError::ZeroVariance => PyValueError::new_err(err.to_string()),
             StatsError::UnderlyingError => PyValueError::new_err(err.to_string()),
+            StatsError::Conversion => PyValueError::new_err(err.to_string())
         }
     }
 }

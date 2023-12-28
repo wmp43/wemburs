@@ -2,6 +2,7 @@ pub mod descriptive_statistics;
 pub mod inferential_statistics;
 pub mod linear_models;
 pub mod utils;
+mod dtype_conversion;
 
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;

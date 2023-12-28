@@ -3,30 +3,19 @@ pub mod errors;
 // At the top of your mod.rs or any other file where you need these modules
 pub use crate::descriptive_statistics::errors::*;
 use pyo3::types::PyDict;
-use statrs::statistics::Data;
 //use statrs::statistics::{Statistics, Median, MeanN, VarianceN};
 use pyo3::prelude::*;
-use numpy::{PyArray1};
-
-#[macro_export] macro_rules! convert_from_pyarray {
-    ($data:expr) => {
-        {
-        let read_data = $data.readonly();
-        read_data.as_slice()?
-        }
-    };
-}
+use crate::utils::from_pyarray1;
 
 #[macro_export] macro_rules! validate_statistical_input {
     // Basic array validation
     (basic, $data:expr) => {
-        let input_data = $data;
 
-        if input_data.is_empty() {
+        if $data.is_empty() {
             return Err(StatsError::EmptyDataSet.into());
         }
 
-        if input_data.iter().any(|&val| val.is_nan() || val.is_infinite()) {
+        if $data.iter().any(|val| val.is_nan() || val.is_infinite()) {
             return Err(StatsError::InvalidInputValue.into());
         }
     };
@@ -110,16 +99,24 @@ pub fn percentile_rs(data: &[f64], percentile: f64) -> f64 {
 
 
 #[pyfunction]
-pub fn mean(x: &PyArray1<f64>) -> PyResult<f64> {
+pub fn mean(x: &PyAny) -> PyResult<f64> {
 // This is where new utils function should go
-    validate_statistical_input!(basic, &x_data); // data validation macro
+    let x_data = match from_pyarray1(x) {
+        Ok(data) => data,
+        Err(e) => return Err(StatsError::Conversion.into()),
+    };
+
+    validate_statistical_input!(basic, x_data); // data validation macro
     let mean_value: f64 = mean_rs(x_data);
     Ok(mean_value)
 }
 
 #[pyfunction]
-pub fn trimmed_mean(x: &PyArray1<f64>, trim_percent: f64) -> PyResult<f64> {
-    let x_data = convert_from_pyarray!(x);
+pub fn trimmed_mean(x: &PyAny, trim_percent: f64) -> PyResult<f64> {
+    let x_data = match from_pyarray1(x) {
+        Ok(data) => data,
+        Err(e) => return Err(StatsError::Conversion.into()),
+    };
     validate_statistical_input!(trimmed, &x_data, trim_percent);
     let n_to_trim = ((x_data.len() as f64) * trim_percent) as usize;
     let mut sorted_data = x_data.to_vec();
@@ -132,9 +129,15 @@ pub fn trimmed_mean(x: &PyArray1<f64>, trim_percent: f64) -> PyResult<f64> {
 
 
 #[pyfunction]
-pub fn weighted_mean(x: &PyArray1<f64>, y: &PyArray1<f64>) -> PyResult<f64> {
-    let x_data = convert_from_pyarray!(x);
-    let y_data = convert_from_pyarray!(y);
+pub fn weighted_mean(x: &PyAny, y: &PyAny) -> PyResult<f64> {
+    let x_data = match from_pyarray1(x) {
+        Ok(data) => data,
+        Err(e) => return Err(StatsError::Conversion.into()),
+    };
+    let y_data = match from_pyarray1(y) {
+        Ok(data) => data,
+        Err(e) => return Err(StatsError::Conversion.into()),
+    };
 
     validate_statistical_input!(weighted, &x_data, &y_data);
 
@@ -152,8 +155,11 @@ pub fn weighted_mean(x: &PyArray1<f64>, y: &PyArray1<f64>) -> PyResult<f64> {
 
 
 #[pyfunction]
-pub fn median(x: &PyArray1<f64>) -> PyResult<f64> {
-    let x_data = convert_from_pyarray!(x);
+pub fn median(x: &PyAny) -> PyResult<f64> {
+    let x_data = match from_pyarray1(x) {
+        Ok(data) => data,
+        Err(e) => return Err(StatsError::Conversion.into()),
+    };
     validate_statistical_input!(basic, &x_data);
     let count = x_data.len();
     let mut sorted_data = x_data.to_vec();
@@ -172,8 +178,11 @@ pub fn median(x: &PyArray1<f64>) -> PyResult<f64> {
 
 
 #[pyfunction]
-pub fn variance(x: &PyArray1<f64>) -> PyResult<f64> {
-    let x_data = convert_from_pyarray!(x);
+pub fn variance(x: &PyAny) -> PyResult<f64> {
+    let x_data = match from_pyarray1(x) {
+        Ok(data) => data,
+        Err(e) => return Err(StatsError::Conversion.into()),
+    };
     validate_statistical_input!(basic, &x_data);
     let mean_value: f64 = mean_rs(x_data);
     let count: usize = x_data.len();
@@ -188,9 +197,12 @@ pub fn variance(x: &PyArray1<f64>) -> PyResult<f64> {
 
 
 #[pyfunction]
-pub fn trimmed_variance(x: &PyArray1<f64>, trim_percent: f64) -> PyResult<f64> {
+pub fn trimmed_variance(x: &PyAny, trim_percent: f64) -> PyResult<f64> {
     // Trimmed Var, analagous to trimmed mean.
-    let x_data = convert_from_pyarray!(x);
+    let x_data = match from_pyarray1(x) {
+        Ok(data) => data,
+        Err(e) => return Err(StatsError::Conversion.into()),
+    };
     validate_statistical_input!(trimmed, &x_data, trim_percent);
     let count: usize = x_data.len();
 
@@ -209,10 +221,13 @@ pub fn trimmed_variance(x: &PyArray1<f64>, trim_percent: f64) -> PyResult<f64> {
 
 
 #[pyfunction]
-pub fn median_absolute_deviation(x: &PyArray1<f64>) -> PyResult<f64> {
+pub fn median_absolute_deviation(x: &PyAny) -> PyResult<f64> {
     // Median absolute deviation
     // MAD = abs(x_i - median(x))
-    let x_data = convert_from_pyarray!(x);
+    let x_data = match from_pyarray1(x) {
+        Ok(data) => data,
+        Err(e) => return Err(StatsError::Conversion.into()),
+    };
     validate_statistical_input!(basic, &x_data);
     let median = median_rs(x_data);
     let mut absolute_deviation: Vec<f64> = x_data.iter()
@@ -224,8 +239,11 @@ pub fn median_absolute_deviation(x: &PyArray1<f64>) -> PyResult<f64> {
 
 
 #[pyfunction]
-pub fn iqr(x: &PyArray1<f64>) -> PyResult<f64> {
-    let x_data = convert_from_pyarray!(x);
+pub fn iqr(x: &PyAny) -> PyResult<f64> {
+    let x_data = match from_pyarray1(x) {
+        Ok(data) => data,
+        Err(e) => return Err(StatsError::Conversion.into()),
+    };
     validate_statistical_input!(basic, &x_data);
     // need way to find 75th and 25th percentile
     if x_data.len() < 2 { return Err(StatsError::InvalidInputValue.into()); }
@@ -236,8 +254,11 @@ pub fn iqr(x: &PyArray1<f64>) -> PyResult<f64> {
 
 
 #[pyfunction]
-pub fn range(x: &PyArray1<f64>) -> PyResult<f64> {
-    let x_data = convert_from_pyarray!(x);
+pub fn range(x: &PyAny) -> PyResult<f64> {
+    let x_data = match from_pyarray1(x) {
+        Ok(data) => data,
+        Err(e) => return Err(StatsError::Conversion.into()),
+    };
     validate_statistical_input!(basic, &x_data);
 
     let min_val = x_data.iter()
@@ -253,12 +274,17 @@ pub fn range(x: &PyArray1<f64>) -> PyResult<f64> {
 
 
 #[pyfunction]
-pub fn covariance(x: &PyArray1<f64>, y: &PyArray1<f64>) -> PyResult<f64> {
+pub fn covariance(x: &PyAny, y: &PyAny) -> PyResult<f64> {
     // Covariance of two PyArrays
     // Sum((x_i - x_bar) * (y_i - y_bar)) / n - 1
-    let x_data = convert_from_pyarray!(x);
-    let y_data = convert_from_pyarray!(y);
-
+    let x_data = match from_pyarray1(x) {
+        Ok(data) => data,
+        Err(e) => return Err(StatsError::Conversion.into()),
+    };
+    let y_data = match from_pyarray1(y) {
+        Ok(data) => data,
+        Err(e) => return Err(StatsError::Conversion.into()),
+    };
     validate_statistical_input!(weighted, &x_data, &y_data);
 
     let n = x_data.len() as f64;
@@ -275,12 +301,18 @@ pub fn covariance(x: &PyArray1<f64>, y: &PyArray1<f64>) -> PyResult<f64> {
 
 
 #[pyfunction]
-pub fn correlation(x: &PyArray1<f64>, y: &PyArray1<f64>) -> PyResult<f64> {
+pub fn correlation(x: &PyAny, y: &PyAny) -> PyResult<f64> {
     // crazy formula lol
     // I wonder what crazy bloke came up with this
     // he deserves a pint
-    let x_data = convert_from_pyarray!(x);
-    let y_data = convert_from_pyarray!(y);
+    let x_data = match from_pyarray1(x) {
+        Ok(data) => data,
+        Err(e) => return Err(StatsError::Conversion.into()),
+    };
+    let y_data = match from_pyarray1(y) {
+        Ok(data) => data,
+        Err(e) => return Err(StatsError::Conversion.into()),
+    };
     validate_statistical_input!(weighted, &x_data, &y_data);
 
     let n = x_data.len() as f64;
@@ -315,13 +347,16 @@ pub fn correlation(x: &PyArray1<f64>, y: &PyArray1<f64>) -> PyResult<f64> {
 
 
 #[pyfunction]
-pub fn skewness(x: &PyArray1<f64>) -> PyResult<f64> {
+pub fn skewness(x: &PyAny) -> PyResult<f64> {
     // Assumes normal distribution
     // returns f64
     // 0 is symmetric distribution
     // >0 denotes asymmetric tail extending toward positive vals
     // < 0 denotes asymmetric tail extending toward negative vals
-    let x_data = convert_from_pyarray!(x);
+    let x_data = match from_pyarray1(x) {
+        Ok(data) => data,
+        Err(e) => return Err(StatsError::Conversion.into()),
+    };
     validate_statistical_input!(basic, &x_data);
 
     let n = x_data.len() as f64;
@@ -342,11 +377,14 @@ pub fn skewness(x: &PyArray1<f64>) -> PyResult<f64> {
 
 
 #[pyfunction]
-pub fn kurtosis(x: &PyArray1<f64>) -> PyResult<f64> {
+pub fn kurtosis(x: &PyAny) -> PyResult<f64> {
     // I'd rate this function 6.8 / 10.0
     // It would be cool if there were multiple methods for bias correction depending on distribution
     // maybe I could implement that
-    let x_data = convert_from_pyarray!(x);
+    let x_data = match from_pyarray1(x) {
+        Ok(data) => data,
+        Err(e) => return Err(StatsError::Conversion.into()),
+    };
     validate_statistical_input!(basic, &x_data);
     let n = x_data.len() as f64;
     if n < 3.0 { return Err(StatsError::InvalidInputValue.into()); }
@@ -368,10 +406,14 @@ pub fn kurtosis(x: &PyArray1<f64>) -> PyResult<f64> {
 }
 
 #[pyfunction]
-pub fn summary_statistics(x: &PyArray1<f64>) -> PyResult<PyObject> {
+pub fn summary_statistics(x: &PyAny) -> PyResult<PyObject> {
+    // This function should also be converted for dataframe methods
     let py = unsafe { Python::assume_gil_acquired() };
-    let x_val = convert_from_pyarray!(x);
-    validate_statistical_input!(basic, x_val);
+    let x_data = match from_pyarray1(x) {
+        Ok(data) => data,
+        Err(e) => return Err(StatsError::Conversion.into()),
+    };
+    validate_statistical_input!(basic, x_data);
 
     let mean = mean(x)?;
     let median = median(x)?;

@@ -10,14 +10,16 @@ use statrs::distribution::ContinuousCDF;
 /// imports
 pub mod errors;
 pub use crate::inferential_statistics::errors::*;
-pub use crate::{convert_from_pyarray, validate_statistical_input,
+pub use crate::{validate_statistical_input,
                 descriptive_statistics::{mean_rs, median_rs, variance_rs,
                                                                percentile_rs}};
+pub use crate::utils::{from_pyarray1};
 
 use statrs::distribution::{Normal};
 use pyo3::types::PyDict;
 use pyo3::prelude::*;
 use numpy::{PyArray1};
+
 
 /// Data Validation Macro
 // Also Imported from descriptive statistics.
@@ -30,7 +32,10 @@ use numpy::{PyArray1};
 pub fn confidence_interval(x: &PyArray1<f64>, ci: f64) -> PyResult<(f64, f64)> {
     // Takes array, ci.
     // Maybe returns tuple with lower bound and upper bound
-    let x_data = convert_from_pyarray!(x);
+    let x_data = match from_pyarray1(x) {
+        Ok(data) => data,
+        Err(e) => return Err(StatsError::Conversion.into()),
+    };
     validate_statistical_input!(basic, x_data);
     if ci < 0.0 || ci > 1.0 {
         return Err(PyErr::from(StatsError::InvalidInputValue));
@@ -55,8 +60,14 @@ pub fn confidence_interval(x: &PyArray1<f64>, ci: f64) -> PyResult<(f64, f64)> {
 
 #[pyfunction]
 pub fn kolmogorov_smirnov_test(x: &PyArray1<f64>, y: &PyArray1<f64>) -> PyResult<f64> {
-    let x_data = convert_from_pyarray!(x);
-    let y_data = convert_from_pyarray!(y);
+    let x_data = match from_pyarray1(x) {
+        Ok(data) => data,
+        Err(e) => return Err(StatsError::Conversion.into()),
+    };
+    let y_data = match from_pyarray1(y) {
+        Ok(data) => data,
+        Err(e) => return Err(StatsError::Conversion.into()),
+    };
     validate_statistical_input!(basic, x_data);
     validate_statistical_input!(basic, y_data);
 

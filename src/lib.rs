@@ -13,7 +13,7 @@ pub use descriptive_statistics::{mean, median, trimmed_mean, weighted_mean, vari
 pub use inferential_statistics::{confidence_interval, kolmogorov_smirnov_test};
 
 // Or common, if you prefer that name
-pub use utils::pyarray_conversion::PyArrayConversion;
+// pub use utils::pyarray_conversion::PyArrayConversion;
 
 //
 #[pymodule]

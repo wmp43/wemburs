@@ -17,5 +17,9 @@ polars = { version = "0.35.4" }
 plotters = { version = "0.3" }
 numpy = { version = "0.20.0" }
 statrs = { version = "0.16.0" }
+polars-core = "0.17.0"
+polars-io = "0.17.0"
+polars-arrow = "0.17.0"
+thiserror = "1.0.20"
 
 

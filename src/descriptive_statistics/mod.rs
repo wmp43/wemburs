@@ -111,7 +111,7 @@ pub fn percentile_rs(data: &[f64], percentile: f64) -> f64 {
 
 #[pyfunction]
 pub fn mean(x: &PyArray1<f64>) -> PyResult<f64> {
-    let x_data = convert_from_pyarray!(x);
+// This is where new utils function should go
     validate_statistical_input!(basic, &x_data); // data validation macro
     let mean_value: f64 = mean_rs(x_data);
     Ok(mean_value)

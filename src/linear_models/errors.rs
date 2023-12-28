@@ -1,4 +1,5 @@
 // Errors for Statistics files: *_statics.rs
+// This needs to be completly remand for linear models
 
 use std::fmt::{Debug, Formatter, Result};
 use pyo3::PyErr;

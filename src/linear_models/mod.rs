@@ -15,7 +15,7 @@ pub trait LinearModel {
     fn fit(&mut self, features: &Array2<f64>, target: &Array1<f64>);
     fn predict(&self, features: &Array2<f64>) -> Array1<f64>;
     fn score(&self, features: &Array2<f64>, metric: &str) -> f64;
-    fn coef(&self) -> &Vec<f64>;
+    fn coef(&self) -> &Array1<f64>;
     //fn visualize(&self) -> visualization of linear model.
     // Don't know how this will work in practice
 }
